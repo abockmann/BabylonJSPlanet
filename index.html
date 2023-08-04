@@ -2,7 +2,7 @@
 <html>
    <head>
       <meta charset = "utf-8">
-      <title>MDN Games: Babylon.js demo - shapes</title>
+      <title>Procedural planet development</title>
       <script src="https://cdn.babylonjs.com/babylon.js"></script>
       <style>
          html,body,canvas { margin: 0; padding: 0; width: 100%; height: 100%; font-size: 0; }
@@ -19,6 +19,7 @@
             scene.clearColor = new BABYLON.Color3(0.2, 0.2, 0.25);
             
             var camera = new BABYLON.ArcRotateCamera("Camera", 1, 0.8, 10, new BABYLON.Vector3(0, 0, 0), scene);
+            camera.wheelPrecision = 50; //Mouse wheel speed
             
             var light0 = new BABYLON.PointLight("Omni", new BABYLON.Vector3(0, 0, 10), scene);
             var light1 = new BABYLON.PointLight("Omni", new BABYLON.Vector3(2, 2, 3), scene);
@@ -26,7 +27,7 @@
             
             // Create the planes
             const quarter_circle = Math.PI/2;
-            const N = 10;
+            const N = 100;
             // Create a plane in the x-z plane, and surface normal in y+ direction
             // Left handed coordinate system!
             const face0 = BABYLON.MeshBuilder.CreateGround("face0", {width: quarter_circle, height: quarter_circle, updatable: true, subdivisions: N}, scene); 
@@ -66,10 +67,11 @@
             
             // if all faces get their texture from the same texture image, we need to update the uvs of each individual face.  The original values are between 0 and 1
             // face 0
+            
             var uvs = face0.getVerticesData(BABYLON.VertexBuffer.UVKind);            
             for(var i = 0; i<numberOfVertices; i++) {
-              uvs[i*2] = 1./4 + uvs[i*2]*(1./4) // u
-              uvs[i*2+1] = 1./3 + uvs[i*2+1]*(1./3) // v
+              uvs[i*2] = 1/4 + uvs[i*2]*(1/4) // u
+              uvs[i*2+1] = 1/3 + uvs[i*2+1]*(1/3) // v
             }
             face0.updateVerticesData(BABYLON.VertexBuffer.UVKind, uvs);
             // face 1
@@ -89,7 +91,7 @@
             // face 3
             var uvs = face3.getVerticesData(BABYLON.VertexBuffer.UVKind);            
             for(var i = 0; i<numberOfVertices; i++) {
-              uvs[i*2] = uvs[i*2]*(1./4) // u
+              uvs[i*2] = uvs[i*2]*(1/4) // u
               uvs[i*2+1] = 1/3 + uvs[i*2+1]*(1/3) // v
             }
             face3.updateVerticesData(BABYLON.VertexBuffer.UVKind, uvs);
@@ -108,17 +110,22 @@
             }
             face5.updateVerticesData(BABYLON.VertexBuffer.UVKind, uvs);
 
+            // merge meshes
+            const mergedMesh = BABYLON.Mesh.MergeMeshes([face0, face1, face2, face3, face4, face5], {disposeSource: true, allow32BitsIndices: true});
             
             // add material to planes
             var material = new BABYLON.StandardMaterial("cubeMat", scene);
             //material.diffuseTexture = new BABYLON.Texture("https://upload.wikimedia.org/wikipedia/commons/7/7a/Earth_cube_map.png",scene);
-            material.diffuseTexture = new BABYLON.Texture("https://logins.github.io/assets/img/posts/2022-09-31-CubemapGenerationWithOpenCV/CubeFacesTex.png")
-            face0.material = material;
-            face1.material = material;
-            face2.material = material;
-            face3.material = material;
-            face4.material = material;
-            face5.material = material;
+            material.diffuseTexture = new BABYLON.Texture("https://logins.github.io/assets/img/posts/2022-09-31-CubemapGenerationWithOpenCV/CubeFacesTex.png", scene, false, false, BABYLON.Texture.NEAREST_TRILINEAR)
+            //face0.material = material;
+            //face1.material = material;
+            //face2.material = material;
+            //face3.material = material;
+            //face4.material = material;
+            //face5.material = material;
+            mergedMesh.material = material;
+            
+            BABYLON.Texture.NEAREST_SAMPLINGMODE;
             
             material.wireframe = false; // debugging
             
