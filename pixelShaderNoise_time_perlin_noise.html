@@ -68,16 +68,26 @@
           float fy1 = interpolate(fx01, fx11, wy);
           return interpolate(fy0, fy1, wz);
         }
+        
+        float fractal_noise(vec3 r, float scale, int octaves, float persistence, int seed) {
+          float ret = 0.;
+          for(int i=0;i<octaves;++i) {
+            ret += pow(persistence, float(i))*perlin_noise(r, scale/pow(2., float(i)), seed+i);
+          }
+          return ret;
+        }
 
         
 
         void main(void) {
 
-            int random_seed = 3421235;
-            float scale = 0.08;
+            int random_seed = 3421212;
+            float scale = 0.5;
             
             //gl_FragColor = vec4(hash34(vec4(p, random_seed)), 1.); // random noise
-            float f = perlin_noise(p, scale, random_seed)+0.5;
+            // float f = perlin_noise(p, scale, random_seed)+0.5; // perlin noise
+            //float f = perlin_noise(p, scale, random_seed)+0.5;
+            float f = fractal_noise(p, scale, 10, 0.4, random_seed)+0.5;
             gl_FragColor = vec4(f, f, f, 1.);
 
         }
