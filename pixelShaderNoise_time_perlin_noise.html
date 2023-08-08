@@ -48,14 +48,14 @@
           vec3 i6 = vec3(i.x, i.y+1., i.z+1.)*scale;
           vec3 i7 = vec3(i.x+1., i.y+1., i.z+1.)*scale;
           // dot products
-          float p0 = dot(normalize(2.*(hash34(vec4(i0, seed)) - .5)), (r - i0)/scale);
-          float p1 = dot(normalize(2.*(hash34(vec4(i1, seed)) - .5)), (r - i1)/scale);
-          float p2 = dot(normalize(2.*(hash34(vec4(i2, seed)) - .5)), (r - i2)/scale);
-          float p3 = dot(normalize(2.*(hash34(vec4(i3, seed)) - .5)), (r - i3)/scale);
-          float p4 = dot(normalize(2.*(hash34(vec4(i4, seed)) - .5)), (r - i4)/scale);
-          float p5 = dot(normalize(2.*(hash34(vec4(i5, seed)) - .5)), (r - i5)/scale);
-          float p6 = dot(normalize(2.*(hash34(vec4(i6, seed)) - .5)), (r - i6)/scale);
-          float p7 = dot(normalize(2.*(hash34(vec4(i7, seed)) - .5)), (r - i7)/scale);
+          float p0 = dot(2.*(hash34(vec4(i0, seed)) - .5), (r - i0)/scale);
+          float p1 = dot(2.*(hash34(vec4(i1, seed)) - .5), (r - i1)/scale);
+          float p2 = dot(2.*(hash34(vec4(i2, seed)) - .5), (r - i2)/scale);
+          float p3 = dot(2.*(hash34(vec4(i3, seed)) - .5), (r - i3)/scale);
+          float p4 = dot(2.*(hash34(vec4(i4, seed)) - .5), (r - i4)/scale);
+          float p5 = dot(2.*(hash34(vec4(i5, seed)) - .5), (r - i5)/scale);
+          float p6 = dot(2.*(hash34(vec4(i6, seed)) - .5), (r - i6)/scale);
+          float p7 = dot(2.*(hash34(vec4(i7, seed)) - .5), (r - i7)/scale);
           // interpolation weights
           float wx = (r.x - i0.x)/scale;
           float wy = (r.y - i0.y)/scale;
@@ -77,17 +77,22 @@
           return ret;
         }
 
-        
+        float contour(float f, float thresh) {
+          if (f > thresh) { 
+            return 1.; } else {
+            return 0.;}
+        }
 
         void main(void) {
 
-            int random_seed = 3421212;
-            float scale = 0.5;
+            int random_seed = 3421211;
+            float scale = 0.4;
             
             //gl_FragColor = vec4(hash34(vec4(p, random_seed)), 1.); // random noise
             // float f = perlin_noise(p, scale, random_seed)+0.5; // perlin noise
             //float f = perlin_noise(p, scale, random_seed)+0.5;
-            float f = fractal_noise(p, scale, 10, 0.4, random_seed)+0.5;
+            // float f = fractal_noise(p, scale, 10, 0.4, random_seed)+0.5;
+            float f = contour(fractal_noise(p, scale, 7, 0.58, random_seed)+0.5, 0.7);
             gl_FragColor = vec4(f, f, f, 1.);
 
         }
