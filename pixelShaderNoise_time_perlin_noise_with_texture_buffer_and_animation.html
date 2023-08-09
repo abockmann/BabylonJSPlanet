@@ -5,9 +5,9 @@
       <title>Procedural planet development</title>
       <script src="https://cdn.babylonjs.com/babylon.js"></script>
       <script type="application/fragmentShader" id="fragmentShaderCode">
-        #ifdef GL_ES
-            precision highp float;
-        #endif
+
+        precision highp float;
+
 
         // Uniforms
         uniform int iTime;
@@ -93,19 +93,26 @@
             //gl_FragColor = vec4(hash34(vec4(p, random_seed)), 1.); // random noise
             // float f = perlin_noise(p, scale, random_seed)+0.5; // perlin noise
             //float f = perlin_noise(p, scale, random_seed)+0.5;
-            float f = fractal_noise(p, scale, 20, 0.5, random_seed)+0.5;
+           
+            
+            float f = fractal_noise(p, scale, 20, 0.8, random_seed)+0.5;
             vec4 tex;
             if (iTime < 10) { // might need some time to draw first texture
-              //tex = vec4(f, f, f, 1.);
               gl_FragColor = vec4(f, f, f, 1.);
             } else {
-              //tex = texture2D(prevTexture, vec2(0.1, 0.1)); 
-              vec2 sample_at = vec2(vUV.y+0.002, -vUV.x); // sample at vec2(vUV.y, -vUV.x).  There seems to be no interpolation.
-              gl_FragColor = texture2D(prevTexture, sample_at); // sample at vec2(vUV.y, -vUV.x) to avoid a rotating image.  uv vs texture coordinates?
+            
+              vec4 blurred = vec4(0.0);
+              for (float i = -1.0; i <= 1.0; i++) {
+                  for (float j = -1.0; j <= 1.0; j++) {
+                      vec2 offset = (vec2(i, j)/iResolution);
+                      blurred += texture2D(prevTexture, vec2(vUV.y + i/400., -(vUV.x + j/400.)));
+                  }
+              }  
+              blurred /= 9.0;
+              gl_FragColor = blurred; // blend; // sample at vec2(vUV.y, -vUV.x) to avoid a rotating image.  uv vs texture coordinates?
             };
 
      
-            //gl_FragColor = tex;
 
         }
 
@@ -192,7 +199,6 @@
             var prevRenderTarget = new BABYLON.RenderTargetTexture("RTT2", { width: engine.getRenderWidth(), height: engine.getRenderHeight() }, scene);
             currentRenderTarget.renderList.push(plate);
             prevRenderTarget.renderList.push(plate);
-            
             // Set initial texture for the first frame
             // plate.material.setTexture("prevTexture", prevRenderTarget);            
             
