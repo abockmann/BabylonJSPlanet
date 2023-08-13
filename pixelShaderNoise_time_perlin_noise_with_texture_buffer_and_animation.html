@@ -8,7 +8,6 @@
 
         precision highp float;
 
-
         // Uniforms
         uniform int iTime;
         uniform vec2 iResolution;
@@ -86,31 +85,30 @@
 
         void main(void) {
 
-            int random_seed = 3421211;
+            int random_seed = 3421210;
             float scale = 0.4;
 
-            
-            //gl_FragColor = vec4(hash34(vec4(p, random_seed)), 1.); // random noise
-            // float f = perlin_noise(p, scale, random_seed)+0.5; // perlin noise
-            //float f = perlin_noise(p, scale, random_seed)+0.5;
            
             
             float f = fractal_noise(p, scale, 20, 0.8, random_seed)+0.5;
             vec4 tex;
-            if (iTime < 10) { // might need some time to draw first texture
+
               gl_FragColor = vec4(f, f, f, 1.);
-            } else {
+
             
               vec4 blurred = vec4(0.0);
-              for (float i = -1.0; i <= 1.0; i++) {
-                  for (float j = -1.0; j <= 1.0; j++) {
+              float stencil_half_width = 10.;
+              for (float i = -stencil_half_width; i <= stencil_half_width; i++) {
+                  for (float j = -stencil_half_width; j <= stencil_half_width; j++) {
                       vec2 offset = (vec2(i, j)/iResolution);
-                      blurred += texture2D(prevTexture, vec2(vUV.y + i/400., -(vUV.x + j/400.)));
+                      blurred += texture2D(prevTexture, vec2(vUV + offset));
                   }
               }  
-              blurred /= 9.0;
-              gl_FragColor = blurred; // blend; // sample at vec2(vUV.y, -vUV.x) to avoid a rotating image.  uv vs texture coordinates?
-            };
+              blurred /= pow(2.*stencil_half_width + 1., 2.);
+
+            
+              gl_FragColor = mix(vec4(f, f, f, 1.), blurred, float(iTime > 10));
+
 
      
 
@@ -118,9 +116,9 @@
 
       </script>
       <script type="application/vertexShader" id="vertexShaderCode">
-          #ifdef GL_ES
-              precision highp float;
-          #endif
+
+          precision highp float;
+
 
           // Uniforms
           uniform mat4 worldViewProjection;
@@ -160,7 +158,7 @@
           }
       
          var canvas = document.getElementById("renderCanvas");
-         var engine = new BABYLON.Engine(canvas, true);
+         var engine = new BABYLON.Engine(canvas, true, {type: BABYLON.Constants.TEXTURETYPE_FLOAT});
          
          var createScene  = function() {
             var scene = new BABYLON.Scene(engine);
@@ -169,12 +167,14 @@
             // Parameters: name, alpha, beta, radius, target position, scene
             var camera = new BABYLON.ArcRotateCamera("Camera", 0, 0, 10, new BABYLON.Vector3(0, 0, 0), scene);
             camera.mode = camera.ORTHOGRAPHIC_CAMERA;
-            camera.orthoBottom = -0.5;
-            camera.orthoTop = 0.5;
-            camera.orthoLeft = -0.5;
-            camera.orthoRight = 0.5;
+            
+            camera.orthoBottom = -1;
+            camera.orthoTop = 1;
+            camera.orthoLeft = -1;
+            camera.orthoRight = 1;
 
-            const plate = BABYLON.MeshBuilder.CreateGround("plate", {width: 1, height: 1}, scene); 
+            const plate = BABYLON.MeshBuilder.CreateGround("plate", {width: 2, height: 2, subdivisions: 1}, scene); 
+            plate.rotation.y = -Math.PI / 2;
             
             // Built in Perlin noise
             //const noiseTexture = new BABYLON.NoiseProceduralTexture("perlin", 512, scene);
@@ -189,14 +189,15 @@
                 },
                 {
                     attributes: ["position", "normal", "uv"],
-                    uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"]
+                    uniforms: ["world", "worldView", "worldViewProjection", "view", "projection", "iTime", "iResolution"]
             });
-            //material.specularColor = new BABYLON.Color3(0, 0, 0);
-            plate.material = shaderMaterial
+
+            plate.material = shaderMaterial;
+            plate.material.backFaceCulling = false;
             
             
-            var currentRenderTarget = new BABYLON.RenderTargetTexture("RTT1", { width: engine.getRenderWidth(), height: engine.getRenderHeight() }, scene);
-            var prevRenderTarget = new BABYLON.RenderTargetTexture("RTT2", { width: engine.getRenderWidth(), height: engine.getRenderHeight() }, scene);
+            var currentRenderTarget = new BABYLON.RenderTargetTexture("RTT1", { width: engine.getRenderWidth(), height: engine.getRenderHeight(), type: BABYLON.Constants.TEXTURETYPE_FLOAT}, scene);
+            var prevRenderTarget = new BABYLON.RenderTargetTexture("RTT2", { width: engine.getRenderWidth(), height: engine.getRenderHeight(), type: BABYLON.Constants.TEXTURETYPE_FLOAT}, scene);
             currentRenderTarget.renderList.push(plate);
             prevRenderTarget.renderList.push(plate);
             // Set initial texture for the first frame
@@ -212,7 +213,8 @@
             var iTime = 0;
             scene.registerBeforeRender(function() {
             plate.material.setInt("iTime", iTime);
-            plate.material.setArray2("iResolution", new BABYLON.Vector2(engine.getRenderWidth(), engine.getRenderHeight()));
+            const aRatio = scene.getEngine().getAspectRatio(camera);
+            plate.material.setVector2("iResolution", new BABYLON.Vector2(engine.getRenderWidth(), engine.getRenderHeight()));
             var temp = currentRenderTarget;
             currentRenderTarget = prevRenderTarget;
             prevRenderTarget = temp;
@@ -235,8 +237,3 @@
       </script>
    </body>
 </html>
-
-
-
-
-
