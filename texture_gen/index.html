@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+   <head>
+      <meta charset = "utf-8">
+      <title>Procedural planet development</title>
+      <script src="https://cdn.babylonjs.com/babylon.js"></script>
+      <style>
+         html,body,canvas { margin: 0; padding: 0; width: 100%; height: 100%; font-size: 0; }
+      </style>
+   </head>
+   
+   <body>
+      <canvas id = "renderCanvas"></canvas>
+      <script type = "text/javascript">
+      
+         var canvas = document.getElementById("renderCanvas");
+         var engine = new BABYLON.Engine(canvas, true, {type: BABYLON.Constants.TEXTURETYPE_FLOAT});
+         
+         var createScene  = function() {
+            var scene = new BABYLON.Scene(engine);
+            scene.clearColor = new BABYLON.Color3(0.2, 0.2, 0.25);
+            
+            // Parameters: name, alpha, beta, radius, target position, scene
+            var camera = new BABYLON.ArcRotateCamera("Camera", 0, 0, 10, new BABYLON.Vector3(0, 0, 0), scene);
+            camera.mode = camera.ORTHOGRAPHIC_CAMERA;
+            
+            camera.orthoBottom = -1;
+            camera.orthoTop = 1;
+            camera.orthoLeft = -1;
+            camera.orthoRight = 1;
+
+            const plate = BABYLON.MeshBuilder.CreateGround("plate", {width: 2, height: 2, subdivisions: 1}, scene); 
+            plate.rotation.y = -Math.PI / 2;
+        
+            var shaderMaterial = new BABYLON.ShaderMaterial("shader", scene, "./sequential_blur",
+            {
+              attributes: ["position", "normal", "uv"],
+              uniforms: ["world", "worldView", "worldViewProjection", "view", "projection", "iTime", "iResolution"]
+            });
+
+            plate.material = shaderMaterial;
+            plate.material.backFaceCulling = false;
+            
+            
+            var currentRenderTarget = new BABYLON.RenderTargetTexture("RTT1", { width: engine.getRenderWidth(), height: engine.getRenderHeight(), type: BABYLON.Constants.TEXTURETYPE_FLOAT}, scene);
+            var prevRenderTarget = new BABYLON.RenderTargetTexture("RTT2", { width: engine.getRenderWidth(), height: engine.getRenderHeight(), type: BABYLON.Constants.TEXTURETYPE_FLOAT}, scene);
+            currentRenderTarget.renderList.push(plate);
+            prevRenderTarget.renderList.push(plate);
+            // Set initial texture for the first frame
+            // plate.material.setTexture("prevTexture", prevRenderTarget);            
+            
+            // add axes for debugging
+            //const axes = new BABYLON.AxesViewer(scene, length_of_axes=1) // x: red, y: green z: blue.  The system is left handed with coordinate axes x-y-z !  Rotations follow the left hand rule
+            
+            // camera control
+            // scene.activeCamera.attachControl(canvas);
+            
+            // prepare time variable to send to shaders
+            var iTime = 0;
+            scene.registerBeforeRender(function() {
+            plate.material.setInt("iTime", iTime);
+            const aRatio = scene.getEngine().getAspectRatio(camera);
+            plate.material.setVector2("iResolution", new BABYLON.Vector2(engine.getRenderWidth(), engine.getRenderHeight()));
+            var temp = currentRenderTarget;
+            currentRenderTarget = prevRenderTarget;
+            prevRenderTarget = temp;
+            scene.customRenderTargets.length = 0;
+            scene.customRenderTargets.push(currentRenderTarget);
+            plate.material.setTexture("prevTexture", prevRenderTarget);
+            iTime += 1;    
+            //sleep(1000);            
+            });
+            
+            
+            
+            return scene;
+         };
+         var scene = createScene();
+
+         engine.runRenderLoop(function() {
+            scene.render();
+         });
+      </script>
+   </body>
+</html>
